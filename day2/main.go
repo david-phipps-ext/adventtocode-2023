@@ -5,55 +5,42 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
-	"unicode"
 )
-
-// gets digit characters from a string
-func getDigits(s string) string {
-	strDigits := ""
-	for _, c := range s {
-		if unicode.IsDigit(c) {
-			strDigits += string(c)
-		}
-	}
-	// Need first and last digit
-	if len(strDigits) > 2 {
-		strDigits = string(strDigits[0]) + string(strDigits[len(strDigits)-1])
-	}
-	// If there is only one digit we double it
-	if len(strDigits) == 1 {
-		strDigits = string(strDigits[0]) + string(strDigits[0])
-	}
-	return strDigits
-}
 
 // returns an int for the number of occurences of substring in a larger string
 func countOccurrences(s, word string) int {
 	return strings.Count(s, word)
 }
 
-// returns the indexes of multiple identical substrings in a larger string
-func getIndexes(s, sub string) []int {
+// gets all indexes of a substring in a larger string
+func getAllIndexes(s, sub string) []int {
 	var indexes []int
-	lastIndex := 0
-	for {
-		index := strings.Index(s[lastIndex:], sub)
+	for i := 0; ; i++ {
+		index := strings.Index(s, sub)
 		if index == -1 {
 			break
 		}
-		indexes = append(indexes, index+lastIndex)
-		lastIndex = index + lastIndex + len(sub)
+		indexes = append(indexes, index+i)
+		s = s[index+1:]
 	}
 	return indexes
 }
 
+// returns the first index of substring in a larger string
+func getIndex(s, sub string) int {
+
+	index := strings.Index(s, sub)
+
+	return index
+}
+
 // checks a string for an array of numbered/int substring values and converts them to string ints
 func parseStringInts(s string) string {
-	parsedString := ""
-	mapVals := make(map[string][]int)
 
-	strToIntMap := map[string]string{
+	strIntMap := map[string]string{
 		"one":   "1",
 		"two":   "2",
 		"three": "3",
@@ -73,38 +60,46 @@ func parseStringInts(s string) string {
 		"8":     "8",
 		"9":     "9",
 	}
+	strIntKeysArry := make([]string, 0, len(strIntMap))
+	for k, _ := range strIntMap {
+		strIntKeysArry = append(strIntKeysArry, k)
+	}
 
-	// need to range over slice of possible strings found and return the index for their location
-	// to the map along with the int value. This will allow us to render the value after and get the
-	// first and last number
-	for k, _ := range strToIntMap {
-		if strings.Contains(s, k) {
-			mapVals[strToIntMap[k]] = getIndexes(s, k)
+	lineIndexes := make(map[string]int)
+	for _, v := range strIntKeysArry {
+		if strings.Contains(s, v) {
+			lineIndexes[v] = getIndex(s, v)
 		}
 	}
 
-	// we should be able to parse mapVals now and only return the beginning and end values or do a sort
-	for k, v := range mapVals {
-		first := ""
-		last := ""
-		end := 1
-		for _, i := range v {
-			if i == 0 {
-				first = k
-			}
-			if i >= end {
-				last = k
-				end = i
-			}
-		}
-		parsedString = first + last
+	keys := make([]string, 0, len(lineIndexes))
+	for key := range lineIndexes {
+		keys = append(keys, key)
 	}
-	return parsedString
+
+	sort.SliceStable(keys, func(i, j int) bool {
+		return lineIndexes[keys[i]] < lineIndexes[keys[j]]
+	})
+
+	fmt.Println("Value of string: ", s)
+	fmt.Println("lineIndexes: ", keys)
+
+	if len(keys) == 1 {
+		fmt.Println(strIntMap[keys[0]] + strIntMap[keys[0]])
+		return strIntMap[keys[0]] + strIntMap[keys[0]]
+
+	} else {
+		fmt.Println(strIntMap[keys[0]] + strIntMap[keys[len(keys)-1]])
+		return strIntMap[keys[0]] + strIntMap[keys[len(keys)-1]]
+	}
 }
+
+// go through string starting from 1st char all the way to the end until there is a match and break
+// flip the string and do the same damn thing
 
 func main() {
 	total := 0
-	file, err := os.Open("input.txt")
+	file, err := os.Open("test.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,20 +108,13 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Println("Checking line: ", line)
-		fmt.Println(parseStringInts(line))
-		// s := parseStringInts(line)
-		// check and replace number words in d with digit chars
-		// d := replaceStringNamesWithInts(line)
-		// fmt.Printf("Old line value is %v, new value is %v", line, d)
-		// fmt.Println()
+		s := parseStringInts(line)
 
-		// d := getDigits(s)
-		// n, err := strconv.Atoi(d)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		// total += n
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			log.Fatal(err)
+		}
+		total += n
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
