@@ -60,6 +60,7 @@ func parseStringInts(s string) string {
 
 	}
 
+	// Find first match going backward in string
 	for i, _ := range s {
 		if r.MatchString(string(s[len(s)-i:])) {
 			last = r.FindString(string(s[len(s)-i:]))
@@ -67,6 +68,7 @@ func parseStringInts(s string) string {
 		}
 	}
 
+	// some strings just have one number so in those cases its for both first/last
 	if first == "" {
 		first = last
 	} else if last == "" {
