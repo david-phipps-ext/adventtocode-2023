@@ -5,39 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-// returns an int for the number of occurences of substring in a larger string
-func countOccurrences(s, word string) int {
-	return strings.Count(s, word)
-}
-
-// gets all indexes of a substring in a larger string
-func getAllIndexes(s, sub string) []int {
-	var indexes []int
-	for i := 0; ; i++ {
-		index := strings.Index(s, sub)
-		if index == -1 {
-			break
-		}
-		indexes = append(indexes, index+i)
-		s = s[index+1:]
-	}
-	return indexes
-}
-
-// returns the first index of substring in a larger string
-func getIndex(s, sub string) int {
-
-	index := strings.Index(s, sub)
-
-	return index
-}
-
-// checks a string for an array of numbered/int substring values and converts them to string ints
+// checks a string for regex of numbered/int substring values and returns them
 func parseStringInts(s string) string {
 
 	strIntMap := map[string]string{
@@ -60,46 +33,52 @@ func parseStringInts(s string) string {
 		"8":     "8",
 		"9":     "9",
 	}
+
+	first := ""
+	last := ""
 	strIntKeysArry := make([]string, 0, len(strIntMap))
 	for k, _ := range strIntMap {
 		strIntKeysArry = append(strIntKeysArry, k)
 	}
 
-	lineIndexes := make(map[string]int)
-	for _, v := range strIntKeysArry {
-		if strings.Contains(s, v) {
-			lineIndexes[v] = getIndex(s, v)
+	// Join the strings with the pipe character, which represents "OR" in regex
+	pattern := strings.Join(strIntKeysArry, "|")
+
+	// Compile the regex
+	r, err := regexp.Compile(pattern)
+	if err != nil {
+		fmt.Println("Error compiling regex:", err)
+		log.Fatal(err)
+	}
+
+	// Find first match going forward in string
+	for i, _ := range s {
+		if r.MatchString(string(s[0:i])) {
+			first = r.FindString(string(s[0:i]))
+			break
+		}
+
+	}
+
+	for i, _ := range s {
+		if r.MatchString(string(s[len(s)-i:])) {
+			last = r.FindString(string(s[len(s)-i:]))
+			break
 		}
 	}
 
-	keys := make([]string, 0, len(lineIndexes))
-	for key := range lineIndexes {
-		keys = append(keys, key)
+	if first == "" {
+		first = last
+	} else if last == "" {
+		last = first
 	}
 
-	sort.SliceStable(keys, func(i, j int) bool {
-		return lineIndexes[keys[i]] < lineIndexes[keys[j]]
-	})
-
-	fmt.Println("Value of string: ", s)
-	fmt.Println("lineIndexes: ", keys)
-
-	if len(keys) == 1 {
-		fmt.Println(strIntMap[keys[0]] + strIntMap[keys[0]])
-		return strIntMap[keys[0]] + strIntMap[keys[0]]
-
-	} else {
-		fmt.Println(strIntMap[keys[0]] + strIntMap[keys[len(keys)-1]])
-		return strIntMap[keys[0]] + strIntMap[keys[len(keys)-1]]
-	}
+	return strIntMap[first] + strIntMap[last]
 }
-
-// go through string starting from 1st char all the way to the end until there is a match and break
-// flip the string and do the same damn thing
 
 func main() {
 	total := 0
-	file, err := os.Open("test.txt")
+	file, err := os.Open("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -121,3 +100,5 @@ func main() {
 	}
 	fmt.Println(total)
 }
+
+// total should be 55614
