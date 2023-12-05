@@ -2,106 +2,64 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 	"strconv"
 )
 
-// game type to hold our number of red, green and blue cubes
-type game struct {
-	id, red, green, blue int
-}
+var blue = 14
+var red = 12
+var green = 13
 
-func newGame(i, r, g, b int) game {
-	return game{i, r, g, b}
-}
+// Game 1: 9 red, 5 blue, 6 green; 6 red, 13 blue; 2 blue, 7 green, 5 red
+func getScore(s []byte) int {
+	played := bytes.Split(s, []byte(`:`))
+	id := bytes.Split(played[0], []byte(` `))[1]
 
-// parse input file for gamevalues
-func getGame(s string) game {
-	// total := 0
-	game := newGame(0, 0, 0, 0)
-	gameIDCaps := `Game\s(\d+)`
-	blueCaps := `(\d+)\sblue`
-	greenCaps := `(\d+)\sgreen`
-	redCaps := `(\d+)\sred`
+	idInt, _ := strconv.Atoi(string(id))
 
-	// re search for game ids
-	re := regexp.MustCompile(gameIDCaps)
-	matches := re.FindAllStringSubmatch(s, -1)
-	game.id, _ = strconv.Atoi(matches[0][1])
+	for _, pull := range bytes.Split(bytes.Trim(played[1], ` `), []byte(`;`)) {
+		for _, bag := range bytes.Split(pull, []byte(`,`)) {
 
-	// re search for blue digits and then total number up
-	re = regexp.MustCompile(blueCaps)
-	matches = re.FindAllStringSubmatch(s, -1)
-	for _, v := range matches {
-		for _, k := range v {
-			i, _ := strconv.Atoi(k)
-			game.blue += i
+			bag = bytes.Trim(bag, ` `)
+			v := bytes.Split(bag, []byte(` `))
+
+			i, _ := strconv.Atoi(string(v[0]))
+
+			switch string(v[1]) {
+			case "blue":
+				if i > blue {
+					return 0
+				}
+			case "green":
+				if i > green {
+					return 0
+				}
+			case "red":
+				if i > red {
+					return 0
+				}
+			}
 		}
-
 	}
 
-	// re search for green digits and then total number up
-	re = regexp.MustCompile(greenCaps)
-	matches = re.FindAllStringSubmatch(s, -1)
-	for _, v := range matches {
-		for _, k := range v {
-			i, _ := strconv.Atoi(k)
-			game.green += i
-		}
+	return idInt
 
-	}
-
-	// re search for red digits and then total number up
-	re = regexp.MustCompile(redCaps)
-	matches = re.FindAllStringSubmatch(s, -1)
-	for _, v := range matches {
-		for _, k := range v {
-			i, _ := strconv.Atoi(k)
-			game.red += i
-		}
-
-	}
-
-	return game
 }
-
 func main() {
-	idSum := 0
-	//winningGame := newGame(0, 12, 13, 14)
-
-	games := []game{}
 
 	file, err := os.Open("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
-
+	score := 0
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := scanner.Text()
-		game := getGame(line)
-		games = append(games, game)
+		line := scanner.Bytes()
+		score += getScore(line)
 	}
-
-	for _, v := range games {
-		if v.blue <= 14 &&
-			v.red <= 12 &&
-			v.green <= 13 {
-			fmt.Println("Adding gameid %v", v.id)
-			// fmt.Println()
-			idSum += v.id
-		}
-	}
-	fmt.Println(idSum)
-	for _, v := range games {
-		fmt.Println(v)
-		fmt.Println()
-	}
-
+	fmt.Println(score)
 }
-
-//game{i, r, g, b}
